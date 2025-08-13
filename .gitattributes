@@ -1,14 +1,13 @@
 # Handle all text files and ensure LF in repo
 * text=auto
-
 # Specific file types to keep LF endings
 *.py text eol=lf
 *.html text eol=lf
 *.css text eol=lf
 *.js text eol=lf
-
 # Binary files - never change line endings
 *.pdf binary
 *.png binary
 *.jpg binary
 *.json text eol=lf
+*.pkl filter=lfs diff=lfs merge=lfs -text
