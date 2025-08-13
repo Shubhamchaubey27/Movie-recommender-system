@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Recommender - Discover Your Next Favorite Film</title>
+    <meta name="description" content="Get personalized movie recommendations based on your favorite films or actors">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+        <div class="loader" role="status" aria-label="Loading recommendations"></div>
+        <p class="loading-text">Finding perfect recommendations...</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="main-title">
+                <span class="title-icon" aria-hidden="true">🎬</span>
+                Movie Recommendation System
+                <span class="beta-label">BETA</span>
+            </h1>
+            <p class="subtitle">Discover your next favorite movie based on what you love</p>
+        </header>
+
+        <!-- Search Form -->
+        <section class="search-section" aria-labelledby="search-heading">
+            <h2 id="search-heading" class="visually-hidden">Search for movies or actors</h2>
+            <form method="POST" id="recommend-form" class="search-form" novalidate>
+                <div class="input-group">
+                    <label for="movie" class="input-label">
+                        <span class="label-text">Search movie or actor:</span>
+                        <span class="label-hint">Try "Inception" or "Leonardo DiCaprio"</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <input
+                            list="movies"
+                            name="movie"
+                            id="movie"
+                            class="search-input"
+                            required
+                            placeholder="Type a movie title or actor name..."
+                            autocomplete="off"
+                            spellcheck="false"
+                            aria-describedby="search-hint error-message"
+                            value="{{ request.form.get('movie', '') if request.form else '' }}"
+                        >
+                        <datalist id="movies">
+                            {% for title in movie_list %}
+                                <option value="{{ title }}">{{ title }}</option>
+                            {% endfor %}
+                        </datalist>
+                        <button type="submit" class="search-button" aria-label="Get movie recommendations">
+                            <span class="button-icon" aria-hidden="true">🎥</span>
+                            <span class="button-text">Get Recommendations</span>
+                        </button>
+                    </div>
+                    <div id="search-hint" class="input-hint">
+                        You can search by movie title or actor name
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <!-- Error Message -->
+        {% if error %}
+            <div class="alert alert-error" role="alert" id="error-message">
+                <span class="alert-icon" aria-hidden="true">⚠️</span>
+                <p class="alert-text">{{ error }}</p>
+            </div>
+        {% endif %}
+
+        <!-- Selected Movie Display -->
+        {% if selected_movie_data %}
+            <section class="selected-movie-section" aria-labelledby="selected-movie-heading">
+                <h2 id="selected-movie-heading" class="selected-movie-title">
+                    {% if is_actor %}
+                        Found Movie for Actor Search
+                    {% else %}
+                        Selected Movie
+                    {% endif %}
+                </h2>
+                <div class="selected-movie-card">
+                    <div class="selected-poster-wrapper">
+                        <img
+                            src="{{ selected_movie_data[1] }}"
+                            alt="Poster for {{ selected_movie_data[0] }}"
+                            class="selected-poster"
+                            loading="lazy"
+                            onerror="this.src='https://via.placeholder.com/200x300?text=No+Image+Available'"
+                        >
+                        {% if selected_movie_data[2] %}
+                            <div class="selected-overlay">
+                                <a href="{{ url_for('movie_details', movie_id=selected_movie_data[2]) }}"
+                                   class="selected-action"
+                                   aria-label="View details for {{ selected_movie_data[0] }}">
+                                    <span aria-hidden="true">🔍</span>
+                                    View Details
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="selected-info">
+                        <h3 class="selected-title">{{ selected_movie_data[0] }}</h3>
+                        {% if is_actor %}
+                            <p class="selected-meta">
+                                <span class="meta-badge">Found via actor search</span>
+                                Based on your search for "{{ request.form.get('movie', '') }}"
+                            </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Recommendations Section -->
+        {% if recommendations %}
+            <section class="recommendations-section" aria-labelledby="recommendations-heading">
+                <h2 id="recommendations-heading" class="recommendations-title">
+                    Recommended Movies
+<!--                    <span class="recommendations-count">({{ recommendations|length }} found)</span>-->
+                </h2>
+                <div class="poster-grid" role="list">
+                    {% for title, poster, movie_id in recommendations %}
+                    <article class="poster-card" role="listitem" tabindex="0">
+                        <div class="poster-image-wrapper">
+                            <img
+                                src="{{ poster }}"
+                                alt="Movie poster for {{ title }}"
+                                class="poster-image"
+                                loading="lazy"
+                                onerror="this.src='https://via.placeholder.com/200x300?text=No+Image+Available'"
+                            >
+                            <div class="poster-overlay">
+                                {% if movie_id %}
+                                    <a href="{{ url_for('movie_details', movie_id=movie_id) }}"
+                                       class="poster-action"
+                                       aria-label="View details for {{ title }}">
+                                        <span aria-hidden="true">🔍</span>
+                                        Explore
+                                    </a>
+                                {% else %}
+                                    <span class="poster-action poster-action-disabled"
+                                          aria-label="Details not available for {{ title }}">
+                                        <span aria-hidden="true">❌</span>
+                                        Unavailable
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <h3 class="poster-title">{{ title }}</h3>
+                        {% if movie_id %}
+                            <p class="poster-status">
+                                <span class="status-indicator status-available" aria-hidden="true">●</span>
+                                Details available
+                            </p>
+                        {% else %}
+                            <p class="poster-status">
+                                <span class="status-indicator status-unavailable" aria-hidden="true">●</span>
+                                Details unavailable
+                            </p>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Empty State -->
+        {% if not recommendations and not error and request.method == 'POST' %}
+            <div class="empty-state">
+                <div class="empty-icon" aria-hidden="true">🎭</div>
+                <h2 class="empty-title">No Recommendations Found</h2>
+                <p class="empty-text">We couldn't find any recommendations. Try searching for a different movie or actor.</p>
+                <button class="retry-button" onclick="document.getElementById('movie').focus()">
+                    Try Another Search
+                </button>
+            </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-text">
+                Powered by <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" class="footer-link">TMDB</a>
+                |Our recommendation system is powered by data from 5,000 movies. Updates are in progress to expand the database soon.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('recommend-form');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const searchInput = document.getElementById('movie');
+
+            // Form submission handler
+            form.addEventListener('submit', function(e) {
+                const query = searchInput.value.trim();
+                if (!query) {
+                    e.preventDefault();
+                    showError('Please enter a movie title or actor name');
+                    return;
+                }
+                showLoading();
+            });
+
+            // Poster card click handlers
+            const posterCards = document.querySelectorAll('.poster-card');
+            posterCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    const actionLink = card.querySelector('.poster-action:not(.poster-action-disabled)');
+                    if (actionLink) {
+                        window.location.href = actionLink.href;
+                    }
+                });
+
+                card.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const actionLink = card.querySelector('.poster-action:not(.poster-action-disabled)');
+                        if (actionLink) {
+                            window.location.href = actionLink.href;
+                        }
+                    }
+                });
+            });
+
+            // Selected movie card click handler
+            const selectedCard = document.querySelector('.selected-movie-card');
+            if (selectedCard) {
+                selectedCard.addEventListener('click', function(e) {
+                    const actionLink = selectedCard.querySelector('.selected-action');
+                    if (actionLink) {
+                        window.location.href = actionLink.href;
+                    }
+                });
+            }
+
+            // Input enhancements
+            searchInput.addEventListener('input', function() {
+                clearError();
+            });
+
+            // Auto-focus search input if no recommendations are shown
+            {% if not recommendations and not selected_movie_data %}
+                searchInput.focus();
+            {% endif %}
+
+            function showLoading() {
+                loadingOverlay.style.display = 'flex';
+                loadingOverlay.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+
+                // Update loading text based on input
+                const loadingText = document.querySelector('.loading-text');
+                const query = searchInput.value.trim();
+                if (query) {
+                    loadingText.textContent = `Analyzing "${query}" and finding recommendations...`;
+                }
+            }
+
+            function hideLoading() {
+                loadingOverlay.style.display = 'none';
+                loadingOverlay.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+
+            function showError(message) {
+                clearError();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-error';
+                errorDiv.setAttribute('role', 'alert');
+                errorDiv.innerHTML = `
+                    <span class="alert-icon" aria-hidden="true">⚠️</span>
+                    <p class="alert-text">${message}</p>
+                `;
+                const form = document.getElementById('recommend-form');
+                form.parentNode.insertBefore(errorDiv, form.nextSibling);
+
+                // Auto-remove error after 5 seconds
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.remove();
+                    }
+                }, 5000);
+            }
+
+            function clearError() {
+                const existingError = document.querySelector('.alert.alert-error:not(#error-message)');
+                if (existingError) {
+                    existingError.remove();
+                }
+            }
+
+            // Handle back button navigation
+            window.addEventListener('popstate', function() {
+                hideLoading();
+            });
+
+            // Hide loading on page load
+            window.addEventListener('load', hideLoading);
+
+            // Hide loading immediately if page is already loaded
+            if (document.readyState === 'complete') {
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>

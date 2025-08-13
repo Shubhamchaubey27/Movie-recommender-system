@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ movie.title }} - Movie Details</title>
+    <meta name="description" content="Detailed information about {{ movie.title }} including story, cast, crew, and more">
+    <link rel="stylesheet" href="{{ url_for('static', filename='movie_details.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay" aria-hidden="true">
+        <div class="loader" role="status" aria-label="Loading movie details"></div>
+        <p class="loading-text">Loading movie details...</p>
+    </div>
+
+    <div class="container">
+        <header class="header">
+            <h1 class="main-title">
+                <span class="title-icon" aria-hidden="true">🎬</span>
+                {{ movie.title }}
+            </h1>
+            <a href="/" class="back-link" aria-label="Back to home">
+                <span aria-hidden="true">←</span> Back to Search
+            </a>
+        </header>
+
+        <section class="movie-details" aria-labelledby="movie-details-heading">
+            <h2 id="movie-details-heading" class="visually-hidden">Movie Details</h2>
+            <div class="movie-content">
+                <div class="movie-poster">
+                    <img
+                        src="{{ movie.poster_path }}"
+                        alt="Movie poster for {{ movie.title }}"
+                        class="poster-image"
+                        loading="lazy"
+                        onerror="this.src='https://via.placeholder.com/200x300?text=No+Image+Available'"
+                    >
+                </div>
+
+                <div class="movie-info">
+                    <h2 class="movie-title">{{ movie.title }}</h2>
+                    <p class="release-year">Released: {{ movie.release_date[:4] if movie.release_date != 'N/A' else 'N/A' }}</p>
+                    <p class="runtime">Runtime: {% if movie.runtime %}{{ movie.runtime }} minutes{% else %}N/A{% endif %}</p>
+                    <p class="rating">Rating: {% if movie.vote_average %}{{ movie.vote_average|round(1) }}/10 ({{ movie.vote_count }} votes){% else %}N/A{% endif %}</p>
+
+                    <div class="overview">
+                        <h3 class="section-title">Story</h3>
+                        <p class="overview-text">{{ movie.overview }}</p>
+                    </div>
+
+                    <div class="cast">
+                        <h3 class="section-title">Cast</h3>
+                        <ul class="cast-list" role="list">
+                            {% for actor in movie.cast %}
+                                <li class="cast-item">{{ actor.name }} as {{ actor.character }}</li>
+                            {% else %}
+                                <li class="cast-item">No cast information available</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <div class="crew">
+                        <h3 class="section-title">Crew</h3>
+                        <ul class="crew-list" role="list">
+                            {% if movie.directors %}
+                                <li class="crew-item">Director{{ 's' if movie.directors|length > 1 else '' }}: {{ movie.directors|join(', ') }}</li>
+                            {% endif %}
+                            {% if movie.writers %}
+                                <li class="crew-item">Writer{{ 's' if movie.writers|length > 1 else '' }}: {{ movie.writers|join(', ') }}</li>
+                            {% endif %}
+                            {% if movie.producers %}
+                                <li class="crew-item">Producer{{ 's' if movie.producers|length > 1 else '' }}: {{ movie.producers|join(', ') }}</li>
+                            {% endif %}
+                            {% if not (movie.directors or movie.writers or movie.producers) %}
+                                <li class="crew-item">No crew information available</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="ott-providers">
+                        <h3 class="section-title">Available on</h3>
+                        {% if movie.watch_providers.streaming or movie.watch_providers.rent or movie.watch_providers.buy %}
+                            {% if movie.watch_providers.streaming %}
+                                <h4>Streaming</h4>
+                                <ul class="ott-list" role="list">
+                                    {% for provider in movie.watch_providers.streaming %}
+                                        <li class="ott-item">{{ provider.provider_name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if movie.watch_providers.rent %}
+                                <h4>Rent</h4>
+                                <ul class="ott-list" role="list">
+                                    {% for provider in movie.watch_providers.rent %}
+                                        <li class="ott-item">{{ provider.provider_name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {% if movie.watch_providers.buy %}
+                                <h4>Buy</h4>
+                                <ul class="ott-list" role="list">
+                                    {% for provider in movie.watch_providers.buy %}
+                                        <li class="ott-item">{{ provider.provider_name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        {% else %}
+                            <p class="ott-text">No streaming information available for your region</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        {% if recommendations %}
+            <section class="recommendations-section" aria-labelledby="recommendations-heading">
+                <h2 id="recommendations-heading" class="recommendations-title">
+                    Recommended Movies
+                </h2>
+                <div class="poster-grid" role="list">
+                    {% for title, poster, movie_id in recommendations %}
+                    <article class="poster-card" role="listitem" tabindex="0">
+                        <div class="poster-image-wrapper">
+                            <img
+                                src="{{ poster }}"
+                                alt="Movie poster for {{ title }}"
+                                class="poster-image"
+                                loading="lazy"
+                                onerror="this.src='https://via.placeholder.com/200x300?text=No+Image+Available'"
+                            >
+                            <div class="poster-overlay">
+                                <a href="{{ url_for('movie_details', movie_id=movie_id) if movie_id else '#' }}"
+                                   class="poster-action"
+                                   aria-label="View details for {{ title }}"
+                                   {% if not movie_id %}aria-disabled="true"{% endif %}>
+                                    <span aria-hidden="true">🔍</span>
+                                    Explore
+                                </a>
+                            </div>
+                        </div>
+                        <h3 class="poster-title">{{ title }}</h3>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+
+        <footer class="footer">
+            <p class="footer-text">
+                Powered by <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" class="footer-link">TMDB</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        window.addEventListener('load', function() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'none';
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        });
+    </script>
+</body>
+</html>
