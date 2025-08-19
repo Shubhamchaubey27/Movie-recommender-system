@@ -469,6 +469,7 @@ async def movie_details(movie_id: int):
 # asgi_app = WsgiToAsgi(app)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
-    
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
     # pass  # Run with `uvicorn app:asgi_app --reload`
+
