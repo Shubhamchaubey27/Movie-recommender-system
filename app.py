@@ -7,7 +7,7 @@ import os
 from tenacity import retry, stop_after_attempt, wait_exponential
 import logging
 from typing import Optional, Tuple, List, Dict, Any
-from asgiref.wsgi import WsgiToAsgi  # Import for ASGI compatibility
+# from asgiref.wsgi import WsgiToAsgi  # Import for ASGI compatibility
 
 app = Flask(__name__)
 
@@ -466,7 +466,9 @@ async def movie_details(movie_id: int):
                                movie_title="Unknown"), 500
 
 # Create ASGI application for Uvicorn
-asgi_app = WsgiToAsgi(app)
+# asgi_app = WsgiToAsgi(app)
 
 if __name__ == '__main__':
-    pass  # Run with `uvicorn app:asgi_app --reload`
+    app.run(host="0.0.0.0", port=5000)
+    
+    # pass  # Run with `uvicorn app:asgi_app --reload`
